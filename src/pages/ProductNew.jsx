@@ -1,23 +1,59 @@
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect} from "react";
 
 export default function ProductNew() {
   const navigate = useNavigate();
+  const [categories, setCategories] = useState([]);
 
-  function handleSubmit(e) {
-    e.preventDefault();
+// Fetch categories for selection
 
-    const formData = new FormData(e.currentTarget);
+useEffect(() => {
+  fetch("https://api.escuelajs.co/api/v1/categories?limit=10")
+    .then(res => res.json())
+    .then(data => setCategories(data));
+}, []);
 
-    const newProduct = {
-      title: formData.get("title"),
-      price: Number(formData.get("price")),
-      categoryId: Number(formData.get("categoryId")),
-      image: formData.get("image"),
-      description: formData.get("description"),
-    };
 
-    console.log("New product:", newProduct);
+  async function handleSubmit(e) {
+  e.preventDefault();
 
+  const formData = new FormData(e.currentTarget);
+
+  const newProduct = {
+    title: formData.get("title"),
+    price: Number(formData.get("price")),
+    categoryId: Number(formData.get("categoryId")),
+    description: formData.get("description"),
+    images: [formData.get("image")],
+  };
+
+// Post products.
+
+  try {
+    const res = await fetch(
+      "https://api.escuelajs.co/api/v1/products",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newProduct),
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error("Failed to create product");
+    }
+
+    const createdProduct = await res.json();
+    console.log("Product created:", createdProduct);
+
+    alert("Successfully saved a new product.");
+    navigate("/products");
+  } catch (error) {
+    console.error(error);
+    alert("Saved a new product failed.");
+  }
     // Later: POST to API
     alert("Product submitted (mock)");
 
@@ -62,15 +98,12 @@ export default function ProductNew() {
         {/* Category ID (1–5 only) */}
         <div>
           <label className="block text-sm font-medium">Category ID</label>
-          <input
-            name="categoryId"
-            type="number"
-            required
-            min={1}
-            max={5}
-            className="mt-1 w-full rounded-lg border px-3 py-2"
-            placeholder="1 - 5"
-          />
+          <select name="categoryId" required className="mt-1 w-full rounded-lg border px-3 py-2">
+          <option value="">Select a category</option>
+          {categories.map(c => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
           <p className="mt-1 text-xs text-slate-500">Allowed values: 1 to 5</p>
         </div>
 
